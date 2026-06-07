@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concrete Mix Optimizer — Simulasi Algoritma Pencarian Lokal &amp; Optimasi</title>
+  <meta name="description" content="Simulasi interaktif algoritma Hill Climbing, Simulated Annealing, dan Genetic Algorithm untuk optimasi komposisi campuran beton. Proyek Mata Kuliah Kecerdasan Buatan.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================================================ HEADER ============================================================ -->
+  <header class="header">
+    <span class="header-icon">🏗</span>
+    <h1>CONCRETE MIX OPTIMIZER</h1>
+    <p class="header-sub">Simulasi Algoritma Pencarian Lokal &amp; Optimasi Komposisi Campuran Beton</p>
+    <p class="header-meta">Mata Kuliah Kecerdasan Buatan &nbsp;·&nbsp; Optimasi Nonlinear Multivariabel (Fungsi Abrams)</p>
+    <div class="badge-row">
+      <span class="badge badge-hc">HILL CLIMBING</span>
+      <span class="badge badge-sa">SIMULATED ANNEALING</span>
+      <span class="badge badge-ga">GENETIC ALGORITHM</span>
+    </div>
+  </header>
+
+  <!-- ============================================================ SHARED: TITIK AWAL ============================================================ -->
+  <section class="shared-params">
+    <div class="section-label">Titik Awal Komposisi — digunakan oleh semua algoritma (kg/m³)</div>
+    <div class="param-grid">
+      <div class="param-box">
+        <div class="param-label">SEMEN &nbsp;[250 – 450 kg]</div>
+        <div class="param-row">
+          <input type="range" id="init-cement" min="250" max="450" value="350" oninput="updateValSuffix(this,'kg')">
+          <span class="param-val" id="init-cement-val">350kg</span>
+        </div>
+      </div>
+      <div class="param-box">
+        <div class="param-label">PASIR &nbsp;[600 – 900 kg]</div>
+        <div class="param-row">
+          <input type="range" id="init-sand" min="600" max="900" value="750" oninput="updateValSuffix(this,'kg')">
+          <span class="param-val" id="init-sand-val">750kg</span>
+        </div>
+      </div>
+      <div class="param-box">
+        <div class="param-label">KERIKIL &nbsp;[900 – 1200 kg]</div>
+        <div class="param-row">
+          <input type="range" id="init-gravel" min="900" max="1200" value="1050" oninput="updateValSuffix(this,'kg')">
+          <span class="param-val" id="init-gravel-val">1050kg</span>
+        </div>
+      </div>
+      <div class="param-box">
+        <div class="param-label">AIR &nbsp;[150 – 220 kg]</div>
+        <div class="param-row">
+          <input type="range" id="init-water" min="150" max="220" value="185" oninput="updateValSuffix(this,'kg')">
+          <span class="param-val" id="init-water-val">185kg</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ TABS ============================================================ -->
+  <nav class="tabs" role="tablist" aria-label="Tab algoritma">
+    <button id="tab-hc"      class="tab active" role="tab" onclick="switchTab('hc', this)"><span class="tab-icon">⛰</span>Hill Climbing</button>
+    <button id="tab-sa"      class="tab"         role="tab" onclick="switchTab('sa', this)"><span class="tab-icon">🌡</span>Sim. Annealing</button>
+    <button id="tab-ga"      class="tab"         role="tab" onclick="switchTab('ga', this)"><span class="tab-icon">🧬</span>Genetic Algo</button>
+    <button id="tab-compare" class="tab"         role="tab" onclick="switchTab('compare', this)"><span class="tab-icon">📊</span>Perbandingan</button>
+    <button id="tab-optima"  class="tab"         role="tab" onclick="switchTab('optima', this)"><span class="tab-icon">🎯</span>Local Optima</button>
+  </nav>
+
+  <!-- ============================================================ PANEL: HILL CLIMBING ============================================================ -->
+  <div id="panel-hc" class="panel active" role="tabpanel" aria-labelledby="tab-hc">
+
+    <div class="info-box info-hc">
+      <strong>Hill Climbing</strong> — Algoritma pencarian lokal yang bergerak ke tetangga dengan nilai lebih baik.
+      <em>Simple HC</em> menerima tetangga pertama yang lebih baik;
+      <em>Steepest-Ascent</em> mengevaluasi semua tetangga dan memilih terbaik;
+      <em>Stochastic HC</em> memilih acak dengan sedikit peluang eksplorasi.
+      <em>Random Restart</em> memulai ulang dari titik acak untuk meloloskan diri dari local optima.
+    </div>
+
+    <div class="section-label">Parameter Algoritma</div>
+    <div class="algo-params algo-params-hc">
+      <div class="algo-params-grid">
+        <div class="param-item">
+          <div class="param-label">MAX ITERASI</div>
+          <div class="param-row">
+            <input type="range" id="hc-iter" min="100" max="2000" value="500" oninput="updateVal(this)">
+            <span class="param-val" id="hc-iter-val">500</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">STEP SIZE (kg)</div>
+          <div class="param-row">
+            <input type="range" id="hc-step" min="1" max="30" value="10" oninput="updateVal(this)">
+            <span class="param-val" id="hc-step-val">10</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">VARIAN</div>
+          <select id="hc-variant">
+            <option value="simple">Simple Hill Climbing</option>
+            <option value="steepest">Steepest-Ascent HC</option>
+            <option value="stochastic">Stochastic Hill Climbing</option>
+          </select>
+        </div>
+        <div class="param-item">
+          <div class="param-label">RANDOM RESTART (kali)</div>
+          <div class="param-row">
+            <input type="range" id="hc-restart" min="1" max="10" value="3" oninput="updateVal(this)">
+            <span class="param-val" id="hc-restart-val">3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn hc" id="btn-hc" onclick="runHC()">▶ JALANKAN HILL CLIMBING</button>
+    <div class="status-bar" id="status-hc">Tekan tombol untuk memulai optimasi...</div>
+
+    <div class="result-cards" id="hc-results" style="display:none">
+      <div class="rcard"><div class="rcard-label">KEKUATAN (f'c)</div><div class="rcard-val" id="hc-strength">—</div></div>
+      <div class="rcard"><div class="rcard-label">BIAYA (Rp/m³)</div><div class="rcard-val" id="hc-cost">—</div></div>
+      <div class="rcard"><div class="rcard-label">WORKABILITY</div><div class="rcard-val" id="hc-work">—</div></div>
+      <div class="rcard"><div class="rcard-label">TOTAL ITERASI</div><div class="rcard-val" id="hc-iters">—</div></div>
+    </div>
+
+    <div class="chart-area" id="hc-chart-area" style="display:none">
+      <div class="chart-title">KURVA KONVERGENSI — Kekuatan Beton (MPa) per Iterasi</div>
+      <div class="chart-wrap"><canvas id="hc-chart"></canvas></div>
+      <div class="mix-section">
+        <div class="chart-title" style="margin-top:12px">KOMPOSISI OPTIMAL</div>
+        <div class="mix-bars" id="hc-mix-bar"></div>
+        <div class="mix-legend">
+          <span><span class="dot" style="background:var(--c-cement)"></span>Semen</span>
+          <span><span class="dot" style="background:var(--c-sand)"></span>Pasir</span>
+          <span><span class="dot" style="background:var(--c-gravel)"></span>Kerikil</span>
+          <span><span class="dot" style="background:var(--c-water)"></span>Air</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-area" id="hc-landscape-area" style="display:none">
+      <div class="chart-title">LANDSCAPE FITNESS 1D — Kekuatan vs Kadar Semen (Proyeksi)</div>
+      <div class="chart-wrap"><canvas id="hc-landscape-chart"></canvas></div>
+      <p class="landscape-note">Grafik menampilkan kekuatan beton (MPa) saat kadar semen divariasikan (250–450 kg/m³) dengan pasir, kerikil, dan air ditetapkan. Penanda ▼ menunjukkan posisi solusi yang ditemukan oleh Hill Climbing.</p>
+    </div>
+
+    <div class="log-area" id="hc-log" style="display:none"></div>
+  </div><!-- /panel-hc -->
+
+  <!-- ============================================================ PANEL: SIMULATED ANNEALING ============================================================ -->
+  <div id="panel-sa" class="panel" role="tabpanel" aria-labelledby="tab-sa">
+
+    <div class="info-box info-sa">
+      <strong>Simulated Annealing</strong> — Terinspirasi proses pendinginan logam. Solusi lebih buruk masih diterima
+      dengan probabilitas Boltzmann <em>P = exp(ΔE / T)</em>, sehingga dapat meloloskan diri dari local optima.
+      Suhu awal <em>T₀</em> dikurangi bertahap dengan laju pendinginan <em>α</em> hingga mencapai <em>T_min</em>.
+    </div>
+
+    <div class="section-label">Parameter Algoritma</div>
+    <div class="algo-params algo-params-sa">
+      <div class="algo-params-grid">
+        <div class="param-item">
+          <div class="param-label">SUHU AWAL (T₀)</div>
+          <div class="param-row">
+            <input type="range" id="sa-t0" min="100" max="5000" value="1000" oninput="updateVal(this)">
+            <span class="param-val" id="sa-t0-val">1000</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">COOLING RATE (α)</div>
+          <div class="param-row">
+            <input type="range" id="sa-cr" min="80" max="99" value="95" oninput="updateCoolingRate(this)">
+            <span class="param-val" id="sa-cr-val">0.95</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">SUHU MINIMUM (T_min)</div>
+          <div class="param-row">
+            <input type="range" id="sa-tmin" min="1" max="50" value="10" oninput="updateVal(this)">
+            <span class="param-val" id="sa-tmin-val">10</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">ITERASI PER SUHU</div>
+          <div class="param-row">
+            <input type="range" id="sa-inner" min="5" max="50" value="20" oninput="updateVal(this)">
+            <span class="param-val" id="sa-inner-val">20</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn sa" id="btn-sa" onclick="runSA()">▶ JALANKAN SIMULATED ANNEALING</button>
+    <div class="status-bar" id="status-sa">Tekan tombol untuk memulai optimasi...</div>
+
+    <div class="result-cards" id="sa-results" style="display:none">
+      <div class="rcard"><div class="rcard-label">KEKUATAN (f'c)</div><div class="rcard-val" id="sa-strength">—</div></div>
+      <div class="rcard"><div class="rcard-label">BIAYA (Rp/m³)</div><div class="rcard-val" id="sa-cost">—</div></div>
+      <div class="rcard"><div class="rcard-label">WORKABILITY</div><div class="rcard-val" id="sa-work">—</div></div>
+      <div class="rcard"><div class="rcard-label">TOTAL ITERASI</div><div class="rcard-val" id="sa-iters">—</div></div>
+    </div>
+
+    <div class="chart-area" id="sa-chart-area" style="display:none">
+      <div class="chart-title">KURVA KONVERGENSI &amp; PENURUNAN SUHU — Cooling Schedule</div>
+      <div class="chart-wrap"><canvas id="sa-chart"></canvas></div>
+      <div class="mix-section">
+        <div class="chart-title" style="margin-top:12px">KOMPOSISI OPTIMAL</div>
+        <div class="mix-bars" id="sa-mix-bar"></div>
+        <div class="mix-legend">
+          <span><span class="dot" style="background:var(--c-cement)"></span>Semen</span>
+          <span><span class="dot" style="background:var(--c-sand)"></span>Pasir</span>
+          <span><span class="dot" style="background:var(--c-gravel)"></span>Kerikil</span>
+          <span><span class="dot" style="background:var(--c-water)"></span>Air</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-area" id="sa-boltzmann-area" style="display:none">
+      <div class="chart-title">PROBABILITAS PENERIMAAN BOLTZMANN — P(accept) = exp(ΔE / T)</div>
+      <div class="chart-wrap"><canvas id="sa-boltzmann-chart"></canvas></div>
+      <p class="boltzmann-note">Kurva menunjukkan probabilitas menerima solusi yang lebih buruk (ΔE &lt; 0) seiring penurunan suhu. Pada suhu tinggi (kiri), hampir semua solusi diterima — memungkinkan eksplorasi luas. Pada suhu rendah (kanan), hanya solusi yang lebih baik yang diterima.</p>
+    </div>
+
+    <div class="log-area" id="sa-log" style="display:none"></div>
+  </div><!-- /panel-sa -->
+
+  <!-- ============================================================ PANEL: GENETIC ALGORITHM ============================================================ -->
+  <div id="panel-ga" class="panel" role="tabpanel" aria-labelledby="tab-ga">
+
+    <div class="info-box info-ga">
+      <strong>Genetic Algorithm</strong> — Terinspirasi evolusi Darwin. Populasi kromosom [semen, pasir, kerikil, air]
+      berkembang melalui <em>seleksi</em> (Tournament / Roulette Wheel),
+      <em>crossover single-point</em> (rekombinasi gen), dan <em>mutasi Gaussian</em>.
+      <em>Elitisme</em> memastikan individu terbaik diwariskan ke generasi berikutnya tanpa modifikasi.
+    </div>
+
+    <div class="section-label">Parameter Algoritma</div>
+    <div class="algo-params algo-params-ga">
+      <div class="algo-params-grid-3">
+        <div class="param-item">
+          <div class="param-label">UKURAN POPULASI</div>
+          <div class="param-row">
+            <input type="range" id="ga-pop" min="10" max="100" value="30" oninput="updateVal(this)">
+            <span class="param-val" id="ga-pop-val">30</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">MAX GENERASI</div>
+          <div class="param-row">
+            <input type="range" id="ga-gen" min="20" max="200" value="80" oninput="updateVal(this)">
+            <span class="param-val" id="ga-gen-val">80</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">PROB CROSSOVER</div>
+          <div class="param-row">
+            <input type="range" id="ga-cx" min="50" max="99" value="80" oninput="updateCxProb(this)">
+            <span class="param-val" id="ga-cx-val">0.80</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">PROB MUTASI</div>
+          <div class="param-row">
+            <input type="range" id="ga-mut" min="1" max="30" value="10" oninput="updateMutProb(this)">
+            <span class="param-val" id="ga-mut-val">0.10</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">ELITISME (top-N)</div>
+          <div class="param-row">
+            <input type="range" id="ga-elite" min="1" max="10" value="2" oninput="updateVal(this)">
+            <span class="param-val" id="ga-elite-val">2</span>
+          </div>
+        </div>
+        <div class="param-item">
+          <div class="param-label">METODE SELEKSI</div>
+          <select id="ga-sel">
+            <option value="tournament">Tournament Selection</option>
+            <option value="roulette">Roulette Wheel</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn ga" id="btn-ga" onclick="runGA()">▶ JALANKAN GENETIC ALGORITHM</button>
+    <div class="status-bar" id="status-ga">Tekan tombol untuk memulai optimasi...</div>
+
+    <div class="result-cards" id="ga-results" style="display:none">
+      <div class="rcard"><div class="rcard-label">KEKUATAN (f'c)</div><div class="rcard-val" id="ga-strength">—</div></div>
+      <div class="rcard"><div class="rcard-label">BIAYA (Rp/m³)</div><div class="rcard-val" id="ga-cost">—</div></div>
+      <div class="rcard"><div class="rcard-label">WORKABILITY</div><div class="rcard-val" id="ga-work">—</div></div>
+      <div class="rcard"><div class="rcard-label">GENERASI</div><div class="rcard-val" id="ga-gens">—</div></div>
+    </div>
+
+    <div class="chart-area" id="ga-chart-area" style="display:none">
+      <div class="chart-title">EVOLUSI POPULASI — Fitness Terbaik &amp; Rata-rata per Generasi</div>
+      <div class="chart-wrap"><canvas id="ga-chart"></canvas></div>
+      <div class="mix-section">
+        <div class="chart-title" style="margin-top:12px">KROMOSOM TERBAIK</div>
+        <div class="mix-bars" id="ga-mix-bar"></div>
+        <div class="mix-legend">
+          <span><span class="dot" style="background:var(--c-cement)"></span>Semen</span>
+          <span><span class="dot" style="background:var(--c-sand)"></span>Pasir</span>
+          <span><span class="dot" style="background:var(--c-gravel)"></span>Kerikil</span>
+          <span><span class="dot" style="background:var(--c-water)"></span>Air</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="log-area" id="ga-log" style="display:none"></div>
+  </div><!-- /panel-ga -->
+
+  <!-- ============================================================ PANEL: PERBANDINGAN ============================================================ -->
+  <div id="panel-compare" class="panel" role="tabpanel" aria-labelledby="tab-compare">
+
+    <p class="compare-desc">Jalankan ketiga algoritma secara otomatis dengan parameter yang sama untuk membandingkan performa: waktu konvergensi, kualitas solusi, dan jumlah iterasi/generasi. Parameter masing-masing algoritma diambil dari tab yang bersesuaian.</p>
+
+    <button class="run-btn all" id="btn-all" onclick="runAll()">▶ BANDINGKAN SEMUA ALGORITMA</button>
+    <div class="status-bar" id="status-all">Tekan tombol untuk menjalankan semua algoritma sekaligus...</div>
+
+    <div id="compare-cards" style="display:none">
+      <div class="compare-grid">
+        <div class="algo-result-card">
+          <div class="algo-result-header hc">⛰ HILL CLIMBING</div>
+          <div class="algo-result-body">
+            <div class="algo-stat"><span class="algo-stat-label">Kekuatan</span><span class="algo-stat-val" id="cmp-hc-str">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Biaya</span><span class="algo-stat-val" id="cmp-hc-cost">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Workability</span><span class="algo-stat-val" id="cmp-hc-work">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Iterasi</span><span class="algo-stat-val" id="cmp-hc-iter">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Waktu</span><span class="algo-stat-val" id="cmp-hc-time">—</span></div>
+            <div id="cmp-hc-badge"></div>
+          </div>
+        </div>
+        <div class="algo-result-card">
+          <div class="algo-result-header sa">🌡 SIM. ANNEALING</div>
+          <div class="algo-result-body">
+            <div class="algo-stat"><span class="algo-stat-label">Kekuatan</span><span class="algo-stat-val" id="cmp-sa-str">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Biaya</span><span class="algo-stat-val" id="cmp-sa-cost">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Workability</span><span class="algo-stat-val" id="cmp-sa-work">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Iterasi</span><span class="algo-stat-val" id="cmp-sa-iter">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Waktu</span><span class="algo-stat-val" id="cmp-sa-time">—</span></div>
+            <div id="cmp-sa-badge"></div>
+          </div>
+        </div>
+        <div class="algo-result-card">
+          <div class="algo-result-header ga">🧬 GENETIC ALGO</div>
+          <div class="algo-result-body">
+            <div class="algo-stat"><span class="algo-stat-label">Kekuatan</span><span class="algo-stat-val" id="cmp-ga-str">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Biaya</span><span class="algo-stat-val" id="cmp-ga-cost">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Workability</span><span class="algo-stat-val" id="cmp-ga-work">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Generasi</span><span class="algo-stat-val" id="cmp-ga-iter">—</span></div>
+            <div class="algo-stat"><span class="algo-stat-label">Waktu</span><span class="algo-stat-val" id="cmp-ga-time">—</span></div>
+            <div id="cmp-ga-badge"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <div class="chart-title">PERBANDINGAN KONVERGENSI — Kekuatan Beton (MPa)</div>
+        <div class="chart-wrap chart-wrap-lg"><canvas id="cmp-chart"></canvas></div>
+      </div>
+
+      <div class="chart-area">
+        <div class="chart-title">PERBANDINGAN METRIK KUALITAS — Kekuatan &amp; Workability</div>
+        <div class="chart-wrap chart-wrap-sm"><canvas id="cmp-bar"></canvas></div>
+      </div>
+
+      <div class="chart-area">
+        <div class="chart-title">TABEL METRIK PERBANDINGAN LENGKAP</div>
+        <table class="metrics-table" id="metrics-table">
+          <thead>
+            <tr>
+              <th>Metrik</th>
+              <th class="th-hc">⛰ Hill Climbing</th>
+              <th class="th-sa">🌡 Sim. Annealing</th>
+              <th class="th-ga">🧬 Genetic Algo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Kekuatan f'c (MPa)</td><td id="mt-hc-str">—</td><td id="mt-sa-str">—</td><td id="mt-ga-str">—</td></tr>
+            <tr><td>Biaya (Rp/m³)</td><td id="mt-hc-cost">—</td><td id="mt-sa-cost">—</td><td id="mt-ga-cost">—</td></tr>
+            <tr><td>Workability (cm slump)</td><td id="mt-hc-work">—</td><td id="mt-sa-work">—</td><td id="mt-ga-work">—</td></tr>
+            <tr><td>W/C Ratio</td><td id="mt-hc-wc">—</td><td id="mt-sa-wc">—</td><td id="mt-ga-wc">—</td></tr>
+            <tr><td>Iterasi / Generasi</td><td id="mt-hc-iter">—</td><td id="mt-sa-iter">—</td><td id="mt-ga-iter">—</td></tr>
+            <tr><td>Waktu Konvergensi</td><td id="mt-hc-time">—</td><td id="mt-sa-time">—</td><td id="mt-ga-time">—</td></tr>
+            <tr><td>Semen Optimal (kg)</td><td id="mt-hc-cement">—</td><td id="mt-sa-cement">—</td><td id="mt-ga-cement">—</td></tr>
+            <tr><td>Air Optimal (kg)</td><td id="mt-hc-water">—</td><td id="mt-sa-water">—</td><td id="mt-ga-water">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /panel-compare -->
+
+  <!-- ============================================================ PANEL: LOCAL OPTIMA ============================================================ -->
+  <div id="panel-optima" class="panel" role="tabpanel" aria-labelledby="tab-optima">
+
+    <div class="optima-explain-grid">
+      <div class="optima-card global">
+        <div class="optima-card-icon">🌍</div>
+        <div class="optima-card-title">Global Optimum</div>
+        <div class="optima-card-desc">Solusi terbaik di seluruh ruang pencarian. Inilah target akhir yang ingin dicapai oleh setiap algoritma optimasi.</div>
+      </div>
+      <div class="optima-card local">
+        <div class="optima-card-icon">⛰</div>
+        <div class="optima-card-title">Local Optimum</div>
+        <div class="optima-card-desc">Solusi yang lebih baik dari semua tetangganya, tetapi bukan terbaik secara global. Hill Climbing mudah terjebak di sini.</div>
+      </div>
+      <div class="optima-card plateau">
+        <div class="optima-card-icon">🏔</div>
+        <div class="optima-card-title">Plateau &amp; Ridge</div>
+        <div class="optima-card-desc">Area dengan nilai fitness yang sama (plateau) atau punggung tipis (ridge). Menyebabkan algoritma berhenti terlalu dini.</div>
+      </div>
+    </div>
+
+    <div class="section-label">Landscape Fitness 1D — Proyeksi Fungsi Objektif</div>
+    <div class="chart-area">
+      <div class="chart-title">LANDSCAPE KEKUATAN BETON vs KADAR SEMEN (250–450 kg/m³)</div>
+      <div class="chart-wrap chart-wrap-lg"><canvas id="landscape-chart"></canvas></div>
+      <p class="landscape-note">Grafik memperlihatkan nilai kekuatan beton (MPa) saat kadar semen divariasikan dari 250 hingga 450 kg/m³, dengan air=185 kg, pasir=750 kg, kerikil=1050 kg. Penanda berwarna menunjukkan posisi solusi yang ditemukan HC, SA, dan GA (setelah masing-masing dijalankan).</p>
+    </div>
+
+    <div class="section-label">Demo: Fenomena Local Optima pada Hill Climbing Tanpa Restart</div>
+    <div class="optima-demo-controls">
+      <div class="param-item">
+        <div class="param-label">JUMLAH PERCOBAAN INDEPENDEN</div>
+        <div class="param-row">
+          <input type="range" id="demo-runs" min="3" max="15" value="8" oninput="updateVal(this)">
+          <span class="param-val" id="demo-runs-val">8</span>
+        </div>
+      </div>
+      <button class="run-btn hc" id="btn-demo" onclick="runLocalOptimaDemo()">▶ JALANKAN DEMO LOCAL OPTIMA</button>
+    </div>
+    <div class="status-bar" id="status-demo">Tekan tombol untuk melihat demonstrasi local optima...</div>
+
+    <div class="chart-area" id="optima-chart-area" style="display:none">
+      <div class="chart-title">TRAJEKTORI PENCARIAN — HC dari Titik Awal Berbeda (Tanpa Random Restart)</div>
+      <div class="chart-wrap chart-wrap-lg"><canvas id="optima-traj-chart"></canvas></div>
+    </div>
+
+    <div id="optima-results" style="display:none">
+      <div class="optima-stats-grid">
+        <div class="ostat-card"><div class="ostat-label">PERCOBAAN</div><div class="ostat-val" id="demo-local-count">—</div></div>
+        <div class="ostat-card"><div class="ostat-label">KEKUATAN TERBAIK</div><div class="ostat-val" id="demo-best-val">—</div></div>
+        <div class="ostat-card"><div class="ostat-label">KEKUATAN TERLEMAH</div><div class="ostat-val" id="demo-worst-val">—</div></div>
+        <div class="ostat-card"><div class="ostat-label">SELISIH (GAP)</div><div class="ostat-val" id="demo-diff-val">—</div></div>
+      </div>
+
+      <div class="chart-area">
+        <div class="chart-title">DISTRIBUSI KEKUATAN — Hasil Tiap Percobaan HC (Hijau = Terbaik / Global)</div>
+        <div class="chart-wrap chart-wrap-sm"><canvas id="optima-dist-chart"></canvas></div>
+      </div>
+
+      <div class="info-box info-hc" style="margin-top:14px">
+        <strong>Kesimpulan:</strong> Tanpa random restart, HC sering terjebak di local optima — menghasilkan solusi yang berbeda-beda dari setiap titik awal. Selisih kekuatan antar percobaan membuktikan keberadaan local optima dalam ruang pencarian 4-dimensi ini. <strong>Simulated Annealing</strong> mengatasinya via probabilitas Boltzmann; <strong>Genetic Algorithm</strong> mengatasinya via diversitas populasi dan seleksi.
+      </div>
+    </div>
+
+  </div><!-- /panel-optima -->
+
+  <!-- ============================================================ FOOTER ============================================================ -->
+  <footer class="footer">
+    <div>🏗 CONCRETE MIX OPTIMIZER — Simulasi Algoritma Pencarian Lokal &amp; Optimasi</div>
+    <div>Hill Climbing &nbsp;·&nbsp; Simulated Annealing &nbsp;·&nbsp; Genetic Algorithm &nbsp;·&nbsp; Optimasi Nonlinear Multivariabel</div>
+    <div style="margin-top:4px;opacity:.5">Mata Kuliah Kecerdasan Buatan &nbsp;·&nbsp; Fungsi Objektif: Abrams Model · Multi-Kriteria (Kekuatan, Biaya, Workability)</div>
+  </footer>
+
+</div><!-- /app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
